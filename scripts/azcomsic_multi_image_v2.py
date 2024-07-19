@@ -1,3 +1,4 @@
+import argparse
 import os
 import glob
 import numpy as np
@@ -342,7 +343,28 @@ def process_all_images(input_folder, output_folder):
     client.close()
     return results
 
-if __name__ == "__main__":
-    input_folder = '/Users/arkhan/Documents/Dark_Results/dark_SPIE_examples/test_data_warm/dark_07022024_g8020_minus100_vss0'
-    output_folder = os.path.join(input_folder, 'output')
+def main(input_folder, output_folder):
     results = process_all_images(input_folder, output_folder)
+    return results
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process the input folder containing data files.")
+    parser.add_argument(
+        '--input_folder', 
+        type=str, 
+        required=True, 
+        help='Path to the input folder containing data files.'
+    )
+    
+    args = parser.parse_args()
+    input_folder = args.input_folder
+    output_folder = os.path.join(input_folder, 'output')
+    
+    if not os.path.isdir(input_folder):
+        raise ValueError(f"The provided path '{input_folder}' is not a valid directory.")
+    else:
+        print(f"Processing data in folder '{input_folder}'")
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder, exist_ok=True)
+            print(f"Output will be saved in '{output_folder}'")
+    # input_folder = '/Users/arkhan/Documents/Dark_Results/dark_SPIE_examples/test_data_warm/dark_07022024_g8020_minus100_vss0'
+    results = main(input_folder, output_folder)

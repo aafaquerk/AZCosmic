@@ -1,3 +1,4 @@
+import argparse
 import os
 import glob
 import numpy as np
@@ -475,13 +476,29 @@ def process_all_images(input_folder, output_folder):
     results = client.gather(futures)
     client.close()
     return results
-
-if __name__ == "__main__":
-    input_file = r'/Users/arkhan/Documents/Dark_Results/dark_SPIE_examples/test_data/warm_g1000_09282023_long_1200s_120C.fits'
-    input_basename = os.path.splitext(os.path.basename(input_file))[0]
-    output_dir = os.path.dirname(input_file)
+def main(input_file,output_dir):
+    input_basename = os.path.splitext(os.path.basename(input_file))[0] # Get the base name of the input file
+    
     os.makedirs(output_dir, exist_ok=True)
-    image_data = fits.getdata(input_file)
-    #[:, 1024:2048]
+    image_data = fits.getdata(input_file)[:, 1024:2048]# region is manually defined currently. 
     image_header = fits.getheader(input_file)
     process_image(image_data, image_header, input_basename, output_dir)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process a FITS file.")
+    parser.add_argument(
+        '--input_file', 
+        type=str, 
+        required=True, 
+        help='Path to the input FITS file.'
+    )
+    args = parser.parse_args()
+    input_file = args.input_file
+    if not os.path.isfile(input_file):
+        raise ValueError(f"The provided path '{input_file}' is not a valid file.")
+    else:
+        print(f"Processing file: {input_file}")
+        output_dir = os.path.join(os.path.dirname(input_file), 'output')
+        print(f"Output directory: {output_dir}")
+    
+    main(input_file,output_dir)
