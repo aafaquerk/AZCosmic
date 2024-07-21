@@ -511,6 +511,7 @@ if __name__ == "__main__":
                 with st.spinner("FITS Imaging coming right up!"):
                     with fits.open(uploaded_file) as hdul:
                         image_data = hdul[0].data[:, 1024:2048]
+                        over_scan_data = hdul[0].data[:, 0:1024]
                         image_header = hdul[0].header
                         fig_fits = plot_fits(image_data, cbar_min=hist_plot_min, cbar_max=hist_plot_max)
                         df = fits_header_to_dataframe(image_header)
