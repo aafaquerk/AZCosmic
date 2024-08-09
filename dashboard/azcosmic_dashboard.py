@@ -513,9 +513,14 @@ if __name__ == "__main__":
                         image_data = hdul[0].data[:, 1024:2048]
                         over_scan_data = hdul[0].data[:, 0:1024]
                         image_header = hdul[0].header
+                        tab_image,tab_overscan = st.tabs(["Image","Overscan"])
                         fig_fits = plot_fits(image_data, cbar_min=hist_plot_min, cbar_max=hist_plot_max)
+                        fig_fits_overscan = plot_fits(over_scan_data, cbar_min=hist_plot_min, cbar_max=hist_plot_max)
                         df = fits_header_to_dataframe(image_header)
-                        st.plotly_chart(fig_fits, use_container_width=True)
+                        with tab_image:
+                            st.plotly_chart(fig_fits, use_container_width=True)
+                        with tab_overscan: 
+                            st.plotly_chart(fig_fits, use_container_width=True)
                         status1.success("Image loaded successfully!")
                         status1.update(label=f"Image: {input_basename}", expanded=False)
                         with col1: 
