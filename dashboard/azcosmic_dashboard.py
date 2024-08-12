@@ -17,6 +17,7 @@ from scipy.spatial import cKDTree
 from dask.distributed import Client
 import plotly.express as px
 import plotly.graph_objects as go
+from streamlit_extras.metric_cards import style_metric_cards
 
 CONVERSION_GAIN=1.8 # e-/ADU
 READNOISE=17 # ADU
@@ -94,7 +95,6 @@ def estimate_em_gain(mean, stddev, hist, bin_centers,linear_fit_sigma_min, linea
         p0 = [0.001,1000]
         popt, pcov = curve_fit(log_linear_model_emgain, fit_x, log_fit_y, maxfev=10000, p0=p0)
         slope,intercept = popt
-        #slope, intercept = np.polyfit(fit_x, log_fit_y, 1)
         emgain = (-1 / slope)
         return emgain,slope,intercept
     except IndexError as e:
@@ -510,7 +510,7 @@ if __name__ == "__main__":
             with st.status("Loading Image...", expanded=True) as status1:
                 with st.spinner("FITS Imaging coming right up!"):
                     with fits.open(uploaded_file) as hdul:
-                        image_data = hdul[0].data[:, 1024:2048]
+                        image_data = hdul[0].data[:, 1080:2080]
                         over_scan_data = hdul[0].data[:, 0:1024]
                         image_header = hdul[0].header
                         tab_image,tab_overscan = st.tabs(["Image","Overscan"])
@@ -520,7 +520,7 @@ if __name__ == "__main__":
                         with tab_image:
                             st.plotly_chart(fig_fits, use_container_width=True)
                         with tab_overscan: 
-                            st.plotly_chart(fig_fits, use_container_width=True)
+                            st.plotly_chart(fig_fits_overscan, use_container_width=True)
                         status1.success("Image loaded successfully!")
                         status1.update(label=f"Image: {input_basename}", expanded=False)
                         with col1: 
@@ -530,7 +530,7 @@ if __name__ == "__main__":
             status1.update(label="Original Image", expanded=False)
             try:
                 with st.status("Searching for Cosmic rays.", expanded=True) as status2:
-                    tab1, tab2 = st.tabs(["Image","Histogram"])
+                    tab1, tab2,tab_metrics = st.tabs(["Image","Histogram","Metrics"])
                     with st.spinner("Coming soon: Processed image and histogram...") as spinner:
                         expanded_df, metadata_df, corrected_image_data, final_mask,fig_hist,fig_hist_corrected = process_image(
                             image_data, image_header, input_basename, output_dir,
@@ -545,6 +545,20 @@ if __name__ == "__main__":
                             st.plotly_chart(fig_output, use_container_width=True)
                         with tab2: 
                             st.pyplot(fig_hist)
+                        with tab_metrics: 
+                            col1_metric,col2_metric,col3_metric= st.columns(3)
+                            col1_metric.metric(label="Total Pixels", value=np.format_float_scientific(np.size(image_data),2))
+                            col1_metric.metric(label="Raw Events", value=int(metadata_df['Events Raw']))
+                            col1_metric.metric(label="CR Events", value=int(metadata_df['Number of unique clusters']))
+                            col2_metric.metric(label="Raw Bias", value=np.format_float_scientific(metadata_df['Gaussian mean'],1))
+                            col2_metric.metric(label="Raw Readnoise", value=np.format_float_scientific(metadata_df['Gaussian stddev'],1))
+                            col3_metric.metric(label="CR Threshold", value=np.format_float_scientific(metadata_df['CR threshold'],2))
+                            col3_metric.metric(label="CR Threshold", value=np.format_float_scientific(metadata_df['CR threshold'],2))
+                            col3_metric.metric(label="Event Threshold", value=np.format_float_scientific(metadata_df['Event threshold'],2))
+                            col3_metric.metric(label="Raw EMGAin", value=np.format_float_scientific(metadata_df['EMGain Raw'],1))
+
+                            # col3_metric.metric(label="Raw EMGain", value=f'{metadata_df['EMGain Corrected']:0.2f}')
+                            style_metric_cards()
                         status2.success("Processing complete!")
                         status2.update(label="Cosmic ray events", expanded=True)
                 col1.success("Image processing complete!")
@@ -552,17 +566,24 @@ if __name__ == "__main__":
                 expander_cleaned_image = st.expander("Cleaned Image", expanded=True)
                 with expander_cleaned_image:
                     fig_output = plot_fits(corrected_image_data, cbar_min=hist_plot_min, cbar_max=hist_plot_max)
-                    tab_cleaned_image,tab_hist = st.tabs(["Cleaned Image","Histogram"])
+                    tab_cleaned_image,tab_hist,tab_metrics = st.tabs(["Cleaned Image","Histogram","Metrics"])
                     with tab_cleaned_image:
                         st.plotly_chart(fig_output, use_container_width=True)
                     with tab_hist:
                         st.pyplot(fig_hist_corrected)
+                    with tab_metrics: 
+                        col1_metric_cleaned,col2_metric_cleaned,col3_metric_cleaned= st.columns(3)
+                        col1_metric_cleaned.metric(label="Corrected Bias", value=np.round(metadata_df['Gaussian mean corrected'],1))
+                        col1_metric_cleaned.metric(label="Corrected Readnoise", value=np.round(metadata_df['Gaussian stddev corrected'],1))
+                        col2_metric_cleaned.metric(label="Event Threshold Corrected", value=np.round(metadata_df['Event Threshold Corrected'],1))
+                        col2_metric_cleaned.metric(label="Corrected EMGAin", value=np.round(metadata_df['EMGain Corrected'],0))
+                        style_metric_cards()
                 expander_data = st.expander("Results", expanded=True)
                 placeholder2 = st.empty()
                 with placeholder2:
                     expander_data = st.expander("Results", expanded=True)
                     with expander_data:
-                        tab1, tab2 = st.tabs(["CR pixels", "Metadata"])
+                        tab1, tab2= st.tabs(["CR pixels", "Metadata"])
                         with tab1:
                             st.dataframe(expanded_df, use_container_width=True, hide_index=True)
                         with tab2:
